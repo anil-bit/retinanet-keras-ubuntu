@@ -1,4 +1,4 @@
-# implimentation of keras retinanet by Adibhatla venkat Ani
+# implimentation of keras retinanet by Adibhatla venkat Anil
 
 ## Installation
 
