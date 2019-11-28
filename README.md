@@ -1,7 +1,4 @@
-# Keras RetinaNet [![Build Status](https://travis-ci.org/fizyr/keras-retinanet.svg?branch=master)](https://travis-ci.org/fizyr/keras-retinanet) [![DOI](https://zenodo.org/badge/100249425.svg)](https://zenodo.org/badge/latestdoi/100249425)
-
-Keras implementation of RetinaNet object detection as described in [Focal Loss for Dense Object Detection](https://arxiv.org/abs/1708.02002)
-by Tsung-Yi Lin, Priya Goyal, Ross Girshick, Kaiming He and Piotr Dollár.
+# implimentation of keras retinanet by Adibhatla venkat Ani
 
 ## Installation
 
@@ -14,238 +11,52 @@ by Tsung-Yi Lin, Priya Goyal, Ross Girshick, Kaiming He and Piotr Dollár.
 4) Alternatively, you can run the code directly from the cloned  repository, however you need to run `python setup.py build_ext --inplace` to compile Cython code first.
 5) Optionally, install `pycocotools` if you want to train / test on the MS COCO dataset by running `pip install --user git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI`.
 
-## Testing
-An example of testing the network can be seen in [this Notebook](https://github.com/delftrobotics/keras-retinanet/blob/master/examples/ResNet50RetinaNet.ipynb).
-In general, inference of the network works as follows:
-```python
-boxes, scores, labels = model.predict_on_batch(inputs)
-```
+## creating or preprocess for your custom dataset:
 
-Where `boxes` are shaped `(None, None, 4)` (for `(x1, y1, x2, y2)`), scores is shaped `(None, None)` (classification score) and labels is shaped `(None, None)` (label corresponding to the score). In all three outputs, the first dimension represents the shape and the second dimension indexes the list of detections.
+1) initially you  have to create 2 csv files.
+2) 1st csv files contain the no of classes involved in training.
+3) 2nd csv files contains name of the image file,location of object in image i.e coordinates of box,class name.
+4) After creating 2 csv files place it in the downloaded keras-retinanet-master repository (i.e the main folder that you have extracted and unziped from github)
+5) copy all the image that you want to train in the main folder i.e keras-retinanet-master repository
 
-Loading models can be done in the following manner:
-```python
-from keras_retinanet.models import load_model
-model = load_model('/path/to/model.h5', backbone_name='resnet50')
-```
+## How to start traininig?
 
-Execution time on NVIDIA Pascal Titan X is roughly 75msec for an image of shape `1000x800x3`.
+In the terminal you need to type  pyhton keras_retinanet/bin/train.py csv /path/to/csv/file/containing/annotations.csv /path/to/csv/file/containing/classes.csv
 
-### Converting a training model to inference model
-The training procedure of `keras-retinanet` works with *training models*. These are stripped down versions compared to the *inference model* and only contains the layers necessary for training (regression and classification values). If you wish to do inference on a model (perform object detection on an image), you need to convert the trained model to an inference model. This is done as follows:
+#parametrs that you can adjust and try during training:
+1)epochs: usually default is 50 epochs ,you can change it according to your requirment.example:pyhton keras_retinanet/bin/train.py --epochs 250 csv /path/to/csv/file/containing/annotations.csv /path/to/csv/file/containing/classes.csv(note:remember to set epochs after train.py and before csv,all the parameters that i am gonna mention below should place in same location after train.py and before csv)
 
-```shell
-# Running directly from the repository:
-keras_retinanet/bin/convert_model.py /path/to/training/model.h5 /path/to/save/inference/model.h5
+2)'--snapshot':'Resume training from a snapshot.'
+3)'--imagenet-weights',  help='Initialize the model with pretrained imagenet weights. This is the default behaviour.', action='store_const', const=True, default=True
+4)'--weights',           help='Initialize the model with weights from a file.'
+    group.add_argument('--no-weights',        help='Don\'t initialize the model with any weights.', dest='imagenet_weights',     action='store_const', const=False)
 
-# Using the installed script:
-retinanet-convert-model /path/to/training/model.h5 /path/to/save/inference/model.h5
-```
+ 5)'--backbone',         help='Backbone model used by retinanet.', default='resnet50', type=str
+ 6)'--batch-size',       help='Size of the batches.', default=1, type=int
+ 7)'--gpu',              help='Id of the GPU to use (as reported by nvidia-smi).'
+ 8)'--multi-gpu',        help='Number of GPUs to use for parallel processing.', type=int, default=0
+ 9)'--multi-gpu-force',  help='Extra flag needed to enable (experimental) multi-gpu support.', action='store_true'
+ 10)'--epochs',          help='Number of epochs to train.', type=int, default=50
+ 11)'--steps',           help='Number of steps per epoch.', type=int, default=10000
+ 12)'--lr',              help='Learning rate.', type=float, default=1e-5
+ 13)'--snapshot-path',   help='Path to store snapshots of models during training (defaults to \'./snapshots\')', default='./snapshots'
+ 14)'--tensorboard-dir', help='Log directory for Tensorboard output', default='./logs'
+ 15)'--no-snapshots',    help='Disable saving snapshots.', dest='snapshots', action='store_false'
+ 16)'--no-evaluation',    help='Disable per epoch evaluation.', dest='evaluation', action='store_false'
+ 17)'--freeze-backbone',  help='Freeze training of backbone layers.', action='store_true'
+ 18)'--random-transform', help='Randomly transform image and annotations.', action='store_true'
+ 19)'--image-min-side',   help='Rescale the image so the smallest side is min_side.', type=int, default=800
+ 20)'--image-max-side',   help='Rescale the image if the largest side is larger than max_side.', type=int, default=1333
+ 21)'--config',           help='Path to a configuration parameters .ini file.'
+ 22)'--weighted-average', help='Compute the mAP using the weighted average of precisions among classes.', action='store_true')
+ 23)'--compute-val-loss', help='Compute validation loss during training', dest='compute_val_loss', action='store_true'
 
-Most scripts (like `retinanet-evaluate`) also support converting on the fly, using the `--convert-model` argument.
-
-
-## Training
-`keras-retinanet` can be trained using [this](https://github.com/fizyr/keras-retinanet/blob/master/keras_retinanet/bin/train.py) script.
-Note that the train script uses relative imports since it is inside the `keras_retinanet` package.
-If you want to adjust the script for your own use outside of this repository,
-you will need to switch it to use absolute imports.
-
-If you installed `keras-retinanet` correctly, the train script will be installed as `retinanet-train`.
-However, if you make local modifications to the `keras-retinanet` repository, you should run the script directly from the repository.
-That will ensure that your local changes will be used by the train script.
-
-The default backbone is `resnet50`. You can change this using the `--backbone=xxx` argument in the running script.
-`xxx` can be one of the backbones in resnet models (`resnet50`, `resnet101`, `resnet152`), mobilenet models (`mobilenet128_1.0`, `mobilenet128_0.75`, `mobilenet160_1.0`, etc), densenet models or vgg models. The different options are defined by each model in their corresponding python scripts (`resnet.py`, `mobilenet.py`, etc).
-
-Trained models can't be used directly for inference. To convert a trained model to an inference model, check [here](https://github.com/fizyr/keras-retinanet#converting-a-training-model-to-inference-model).
-
-### Usage
-For training on [Pascal VOC](http://host.robots.ox.ac.uk/pascal/VOC/), run:
-```shell
-# Running directly from the repository:
-keras_retinanet/bin/train.py pascal /path/to/VOCdevkit/VOC2007
-
-# Using the installed script:
-retinanet-train pascal /path/to/VOCdevkit/VOC2007
-```
-
-For training on [MS COCO](http://cocodataset.org/#home), run:
-```shell
-# Running directly from the repository:
-keras_retinanet/bin/train.py coco /path/to/MS/COCO
-
-# Using the installed script:
-retinanet-train coco /path/to/MS/COCO
-```
-
-For training on Open Images Dataset [OID](https://storage.googleapis.com/openimages/web/index.html)
-or taking place to the [OID challenges](https://storage.googleapis.com/openimages/web/challenge.html), run:
-```shell
-# Running directly from the repository:
-keras_retinanet/bin/train.py oid /path/to/OID
-
-# Using the installed script:
-retinanet-train oid /path/to/OID
-
-# You can also specify a list of labels if you want to train on a subset
-# by adding the argument 'labels_filter':
-keras_retinanet/bin/train.py oid /path/to/OID --labels-filter=Helmet,Tree
-
-# You can also specify a parent label if you want to train on a branch
-# from the semantic hierarchical tree (i.e a parent and all children)
-(https://storage.googleapis.com/openimages/challenge_2018/bbox_labels_500_hierarchy_visualizer/circle.html)
-# by adding the argument 'parent-label':
-keras_retinanet/bin/train.py oid /path/to/OID --parent-label=Boat
-```
+    # Fit generator arguments
+ 24)'--multiprocessing',  help='Use multiprocessing in fit_generator.', action='store_true'
+ 25)'--workers',          help='Number of generator workers.', type=int, default=1
+ 26)'--max-queue-size',   help='Queue length for multipnerator.', type=int, default=10)
 
 
-For training on [KITTI](http://www.cvlibs.net/datasets/kitti/eval_object.php), run:
-```shell
-# Running directly from the repository:
-keras_retinanet/bin/train.py kitti /path/to/KITTI
-
-# Using the installed script:
-retinanet-train kitti /path/to/KITTI
-
-If you want to prepare the dataset you can use the following script:
-https://github.com/NVIDIA/DIGITS/blob/master/examples/object-detection/prepare_kitti_data.py
-```
-
-
-For training on a [custom dataset], a CSV file can be used as a way to pass the data.
-See below for more details on the format of these CSV files.
-To train using your CSV, run:
-```shell
-# Running directly from the repository:
-keras_retinanet/bin/train.py csv /path/to/csv/file/containing/annotations /path/to/csv/file/containing/classes
-
-# Using the installed script:
-retinanet-train csv /path/to/csv/file/containing/annotations /path/to/csv/file/containing/classes
-```
-
-In general, the steps to train on your own datasets are:
-1) Create a model by calling for instance `keras_retinanet.models.backbone('resnet50').retinanet(num_classes=80)` and compile it.
-   Empirically, the following compile arguments have been found to work well:
-```python
-model.compile(
-    loss={
-        'regression'    : keras_retinanet.losses.smooth_l1(),
-        'classification': keras_retinanet.losses.focal()
-    },
-    optimizer=keras.optimizers.adam(lr=1e-5, clipnorm=0.001)
-)
-```
-2) Create generators for training and testing data (an example is show in [`keras_retinanet.preprocessing.pascal_voc.PascalVocGenerator`](https://github.com/fizyr/keras-retinanet/blob/master/keras_retinanet/preprocessing/pascal_voc.py)).
-3) Use `model.fit_generator` to start training.
-
-## Pretrained models
-
-All models can be downloaded from the [releases page](https://github.com/fizyr/keras-retinanet/releases).
-
-### MS COCO
-
-Results using the `cocoapi` are shown below (note: according to the paper, this configuration should achieve a mAP of 0.357).
-
-```
- Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.350
- Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.537
- Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.374
- Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.191
- Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.383
- Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.472
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.306
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.491
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.533
- Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.345
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.577
- Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.681
-```
-
-### Open Images Dataset
-There are 3 RetinaNet models based on ResNet50, ResNet101 and ResNet152 trained on all [500 classes](https://github.com/ZFTurbo/Keras-RetinaNet-for-Open-Images-Challenge-2018/blob/master/a00_utils_and_constants.py#L130) of the Open Images Dataset (thanks to @ZFTurbo).
-
-| Backbone  | Image Size (px) | Small validation mAP | LB (Public) |
-| --------- | --------------- | -------------------- | ----------- |
-| ResNet50  | 768 - 1024      | 0.4594               | 0.4223      |
-| ResNet101 | 768 - 1024      | 0.4986               | 0.4520      |
-| ResNet152 | 600 - 800       | 0.4991               | 0.4651      |
-
-For more information, check [@ZFTurbo's](https://github.com/ZFTurbo/Keras-RetinaNet-for-Open-Images-Challenge-2018) repository.
-
-## CSV datasets
-The `CSVGenerator` provides an easy way to define your own datasets.
-It uses two CSV files: one file containing annotations and one file containing a class name to ID mapping.
-
-### Annotations format
-The CSV file with annotations should contain one annotation per line.
-Images with multiple bounding boxes should use one row per bounding box.
-Note that indexing for pixel values starts at 0.
-The expected format of each line is:
-```
-path/to/image.jpg,x1,y1,x2,y2,class_name
-```
-By default the CSV generator will look for images relative to the directory of the annotations file.
-
-Some images may not contain any labeled objects.
-To add these images to the dataset as negative examples,
-add an annotation where `x1`, `y1`, `x2`, `y2` and `class_name` are all empty:
-```
-path/to/image.jpg,,,,,
-```
-
-A full example:
-```
-/data/imgs/img_001.jpg,837,346,981,456,cow
-/data/imgs/img_002.jpg,215,312,279,391,cat
-/data/imgs/img_002.jpg,22,5,89,84,bird
-/data/imgs/img_003.jpg,,,,,
-```
-
-This defines a dataset with 3 images.
-`img_001.jpg` contains a cow.
-`img_002.jpg` contains a cat and a bird.
-`img_003.jpg` contains no interesting objects/animals.
-
-
-### Class mapping format
-The class name to ID mapping file should contain one mapping per line.
-Each line should use the following format:
-```
-class_name,id
-```
-
-Indexing for classes starts at 0.
-Do not include a background class as it is implicit.
-
-For example:
-```
-cow,0
-cat,1
-bird,2
-```
-
-## Anchor optimization
-
-In some cases, the default anchor configuration is not suitable for detecting objects in your dataset, for example, if your objects are smaller than the 32x32px (size of the smallest anchors). In this case, it might be suitable to modify the anchor configuration, this can be done automatically by following the steps in the [anchor-optimization](https://github.com/martinzlocha/anchor-optimization/) repository. To use the generated configuration check [here](https://github.com/fizyr/keras-retinanet-test-data/blob/master/config/config.ini) for an example config file and then pass it to `train.py` using the `--config` parameter.
-
-## Debugging
-Creating your own dataset does not always work out of the box. There is a [`debug.py`](https://github.com/fizyr/keras-retinanet/blob/master/keras_retinanet/bin/debug.py) tool to help find the most common mistakes.
-
-Particularly helpful is the `--annotations` flag which displays your annotations on the images from your dataset. Annotations are colored in green when there are anchors available and colored in red when there are no anchors available. If an annotation doesn't have anchors available, it means it won't contribute to training. It is normal for a small amount of annotations to show up in red, but if most or all annotations are red there is cause for concern. The most common issues are that the annotations are too small or too oddly shaped (stretched out).
-
-## Results
-
-### MS COCO
-
-## Status
-Example output images using `keras-retinanet` are shown below.
-
-<p align="center">
-  <img src="https://github.com/delftrobotics/keras-retinanet/blob/master/images/coco1.png" alt="Example result of RetinaNet on MS COCO"/>
-  <img src="https://github.com/delftrobotics/keras-retinanet/blob/master/images/coco2.png" alt="Example result of RetinaNet on MS COCO"/>
-  <img src="https://github.com/delftrobotics/keras-retinanet/blob/master/images/coco3.png" alt="Example result of RetinaNet on MS COCO"/>
-</p>
 
 ### Projects using keras-retinanet
 * [Improving Apple Detection and Counting Using RetinaNet](https://github.com/nikostsagk/Apple-detection). This work aims to investigate the apple detection problem through the deployment of the Keras RetinaNet.
